@@ -1,0 +1,16 @@
+{
+  "command.selectAsAfter.title": "Markdown Diff for AI: Select as After",
+  "command.selectAsBefore.title": "Markdown Diff for AI: Select as Before",
+  "config.defaultSensitivity.desc": "Default sensitivity threshold for fine-grained diffs vs block replacements. Used as the initial value when opening a new diff view.",
+  "config.defaultSensitivity.title": "Markdown Diff for AI",
+  "webview.before": "Before",
+  "webview.after": "After",
+  "webview.selectFile": "Select File...",
+  "webview.notSelected": "Not selected",
+  "webview.compare": "Compare",
+  "webview.clear": "Clear",
+  "webview.sensitivity": "Sensitivity",
+  "webview.sensitivityTooltip": "Lower = more likely to group as modified blocks. Higher = stricter, likely to split into removed/added blocks.",
+  "webview.computing": "Computing diff...",
+  "error.computing": "Error computing diff:"
+}

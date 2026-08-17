@@ -1,0 +1,95 @@
+{
+  "name": "markdown-diff-for-ai",
+  "displayName": "Markdown Diff for AI",
+  "description": "Compare two markdown files as rendered HTML with a focus on human-readable structural changes, especially for AI revisions.",
+  "version": "0.1.0",
+  "publisher": "antigravity",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "markdownDiffForAi.selectAsAfter",
+        "title": "%command.selectAsAfter.title%",
+        "icon": "$(file-symlink-file)"
+      },
+      {
+        "command": "markdownDiffForAi.selectAsBefore",
+        "title": "%command.selectAsBefore.title%",
+        "icon": "$(history)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "markdownDiffForAi.selectAsAfter",
+          "group": "navigation@1",
+          "when": "resourceExtname == .md"
+        },
+        {
+          "command": "markdownDiffForAi.selectAsBefore",
+          "group": "navigation@2",
+          "when": "resourceExtname == .md"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "%config.defaultSensitivity.title%",
+      "properties": {
+        "markdownDiffForAi.defaultSensitivity": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "%config.defaultSensitivity.desc%"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src --ext ts",
+    "test": "vitest run test/"
+  },
+  "devDependencies": {
+    "@types/diff": "^5.2.1",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.1.1",
+    "@typescript-eslint/parser": "^7.1.1",
+    "esbuild": "^0.20.1",
+    "eslint": "^8.57.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.3.3",
+    "vitest": "^1.4.0"
+  },
+  "dependencies": {
+    "diff": "^5.2.0",
+    "hast-util-sanitize": "^5.0.2",
+    "hastscript": "^9.0.1",
+    "mdast-util-to-hast": "^13.2.1",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "unified": "^11.0.4",
+    "unist-util-visit": "^5.0.0"
+  }
+}

@@ -1,0 +1,12 @@
+node_modules/
+out/
+dist/
+.vscode-test/
+*.vsix
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Ignored project documentation and AI context
+docs/

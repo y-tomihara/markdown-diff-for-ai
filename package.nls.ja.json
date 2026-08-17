@@ -1,0 +1,16 @@
+{
+  "command.selectAsAfter.title": "Markdown Diff for AI: 変更後(After)として選択",
+  "command.selectAsBefore.title": "Markdown Diff for AI: 変更前(Before)として選択",
+  "config.defaultSensitivity.desc": "微細な差分とブロック置換を判定する感度のデフォルト閾値。新しいDiffビューを開いたときの初期値として使用されます。",
+  "config.defaultSensitivity.title": "Markdown Diff for AI",
+  "webview.before": "変更前 (Before)",
+  "webview.after": "変更後 (After)",
+  "webview.selectFile": "ファイルを選択...",
+  "webview.notSelected": "未選択",
+  "webview.compare": "比較する",
+  "webview.clear": "クリア",
+  "webview.sensitivity": "感度 (Sensitivity)",
+  "webview.sensitivityTooltip": "低い = 変更されたブロックとしてグループ化されやすい。 高い = 厳格。削除と追加の別ブロックとして分割されやすい。",
+  "webview.computing": "差分を計算中...",
+  "error.computing": "Diff計算エラー:"
+}
