@@ -2,7 +2,7 @@
   "name": "markdown-diff-for-ai",
   "displayName": "Markdown Diff for AI",
   "description": "Compare two markdown files as rendered HTML with a focus on human-readable structural changes, especially for AI revisions.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "youtomihara",
   "repository": {
     "type": "git",
