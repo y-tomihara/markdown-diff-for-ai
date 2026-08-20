@@ -2,8 +2,16 @@
   "name": "markdown-diff-for-ai",
   "displayName": "Markdown Diff for AI",
   "description": "Compare two markdown files as rendered HTML with a focus on human-readable structural changes, especially for AI revisions.",
-  "version": "0.1.0",
-  "publisher": "antigravity",
+  "version": "1.0.0",
+  "publisher": "youtomihara",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/y-tomihara/markdown-diff-for-ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/y-tomihara/markdown-diff-for-ai/issues"
+  },
+  "icon": "icon.jpg",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -16,38 +24,94 @@
     "commands": [
       {
         "command": "markdownDiffForAi.selectAsAfter",
+        "category": "Markdown Diff for AI",
         "title": "%command.selectAsAfter.title%",
         "icon": "$(file-symlink-file)"
       },
       {
         "command": "markdownDiffForAi.selectAsBefore",
+        "category": "Markdown Diff for AI",
         "title": "%command.selectAsBefore.title%",
         "icon": "$(history)"
+      },
+      {
+        "command": "markdownDiffForAi.compareWithHead",
+        "category": "Markdown Diff for AI",
+        "title": "%command.compareWithHead.title%"
+      },
+      {
+        "command": "markdownDiffForAi.compareWithPrevious",
+        "category": "Markdown Diff for AI",
+        "title": "%command.compareWithPrevious.title%"
+      },
+      {
+        "command": "markdownDiffForAi.compareWithCommit",
+        "category": "Markdown Diff for AI",
+        "title": "%command.compareWithCommit.title%"
+      },
+      {
+        "command": "markdownDiffForAi.compareWithBranch",
+        "category": "Markdown Diff for AI",
+        "title": "%command.compareWithBranch.title%"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "markdownDiffForAi.submenu",
+        "label": "Markdown Diff for AI"
       }
     ],
     "menus": {
       "explorer/context": [
         {
-          "command": "markdownDiffForAi.selectAsAfter",
+          "submenu": "markdownDiffForAi.submenu",
           "group": "navigation@1",
           "when": "resourceExtname == .md"
+        }
+      ],
+      "markdownDiffForAi.submenu": [
+        {
+          "command": "markdownDiffForAi.selectAsAfter",
+          "group": "1_local@1"
         },
         {
           "command": "markdownDiffForAi.selectAsBefore",
-          "group": "navigation@2",
-          "when": "resourceExtname == .md"
+          "group": "1_local@2"
+        },
+        {
+          "command": "markdownDiffForAi.compareWithHead",
+          "group": "2_git@1"
+        },
+        {
+          "command": "markdownDiffForAi.compareWithPrevious",
+          "group": "2_git@2"
+        },
+        {
+          "command": "markdownDiffForAi.compareWithCommit",
+          "group": "2_git@3"
+        },
+        {
+          "command": "markdownDiffForAi.compareWithBranch",
+          "group": "2_git@4"
         }
       ]
     },
     "configuration": {
-      "title": "%config.defaultSensitivity.title%",
+      "title": "Markdown Diff for AI",
       "properties": {
         "markdownDiffForAi.defaultSensitivity": {
           "type": "number",
-          "default": 0.7,
+          "default": 0.8,
           "minimum": 0,
           "maximum": 1,
           "description": "%config.defaultSensitivity.desc%"
+        },
+        "markdownDiffForAi.commitHistoryLimit": {
+          "type": "number",
+          "default": 50,
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "%config.commitHistoryLimit.desc%"
         }
       }
     }

@@ -28,7 +28,7 @@ const customSchema = {
  * BlockDiffResultの配列をHTMLにレンダリングする
  * AST/HAST構造を維持したまま、安全なサニタイズ処理を行う
  */
-export async function renderDiff(diffResults: BlockDiffResult[]): Promise<string> {
+export async function renderDiff(diffResults: BlockDiffResult[], beforeLabel: string = 'Before', afterLabel: string = 'After'): Promise<string> {
     const hastNodes: HastContent[] = [];
 
     for (const result of diffResults) {
@@ -95,12 +95,12 @@ export async function renderDiff(diffResults: BlockDiffResult[]): Promise<string
             const newNodeHast = Array.isArray(newHast) ? h('div', newHast) : (newHast?.type === 'root' ? h('div', newHast.children) : newHast);
             
             const oldElement = h('div', { className: ['diff-removed', 'diff-image-old'] }, [
-                h('div', { className: ['diff-image-label'] }, 'Before'),
+                h('div', { className: ['diff-image-label'] }, beforeLabel),
                 oldNodeHast
             ]);
             
             const newElement = h('div', { className: ['diff-added', 'diff-image-new'] }, [
-                h('div', { className: ['diff-image-label'] }, 'After'),
+                h('div', { className: ['diff-image-label'] }, afterLabel),
                 newNodeHast
             ]);
             

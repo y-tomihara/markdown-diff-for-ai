@@ -7,6 +7,7 @@ import { parseMarkdown } from '../engine/parser';
 import { computeFineGrainedDiffAsync } from '../engine/diff';
 import { renderDiff } from './renderer';
 import { localize } from '../extension/i18n';
+import { GitService } from '../git/GitService';
 
 export class MarkdownDiffPanel {
     public static currentPanel: MarkdownDiffPanel | undefined;
@@ -25,7 +26,7 @@ export class MarkdownDiffPanel {
                         this._handleFileRequest(message.target);
                         return;
                     case 'diff':
-                        this._handleDiffRequest(message.beforePath, message.afterPath, message.sensitivity, message.diffId);
+                        this._handleDiffRequest(message.beforePath, message.afterPath, message.sensitivity, message.beforeLabel, message.afterLabel, message.diffId);
                         return;
                     case 'checkAutoPair':
                         this._handleAutoPair(message);
@@ -66,6 +67,33 @@ export class MarkdownDiffPanel {
             );
 
             MarkdownDiffPanel.currentPanel = new MarkdownDiffPanel(panel, initialUri, initialTarget);
+        }
+    }
+
+    public static renderWithVirtual(extensionUri: vscode.Uri, documentUri: vscode.Uri, target: 'before' | 'after', virtualPath: string, virtualLabel: string, _content: string) {
+        const isNew = !MarkdownDiffPanel.currentPanel;
+        
+        // First ensure panel is rendered
+        MarkdownDiffPanel.render(extensionUri, documentUri, target);
+        
+        // Then send the virtual file info
+        const panel = MarkdownDiffPanel.currentPanel;
+        if (panel) {
+            const sendVirtual = () => {
+                panel._panel.webview.postMessage({
+                    command: 'fileSelected',
+                    target: target === 'after' ? 'before' : 'after', // if documentUri is after, virtual is before
+                    fileName: virtualLabel, // Show label in UI
+                    filePath: virtualPath   // Use virtual path for backend tracking
+                });
+            };
+
+            if (isNew) {
+                // If the panel was just created, wait for the webview to mount before posting
+                setTimeout(sendVirtual, 800);
+            } else {
+                sendVirtual();
+            }
         }
     }
 
@@ -120,7 +148,7 @@ export class MarkdownDiffPanel {
         }
     }
 
-    private async _handleDiffRequest(beforePath: string, afterPath: string, sensitivity: number, diffId?: number) {
+    private async _handleDiffRequest(beforePath: string, afterPath: string, sensitivity: number, beforeLabel: string, afterLabel: string, diffId?: number) {
         // Create a URL resolver that resolves absolute paths, generates Webview URIs, and computes file hash
         const createUrlResolver = (baseDir: string) => (url: string, node: any) => {
             node.originalUrl = url;
@@ -155,24 +183,40 @@ export class MarkdownDiffPanel {
         };
 
         try {
-            const [beforeContent, afterContent] = await Promise.all([
-                fs.readFile(beforePath, 'utf-8'),
-                fs.readFile(afterPath, 'utf-8')
-            ]);
+            let beforeContent = '';
+            let actualBeforePath = beforePath;
+            if (beforePath.startsWith('git:')) {
+                // git:ref:absolutePath
+                const parts = beforePath.split(':');
+                const ref = parts[1];
+                const originalPath = parts.slice(2).join(':');
+                actualBeforePath = originalPath;
+                const cwd = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(originalPath))?.uri.fsPath || path.dirname(originalPath);
+                const gitService = new GitService();
+                beforeContent = await gitService.getFileContent(originalPath, ref, cwd);
+            } else {
+                beforeContent = await fs.readFile(beforePath, 'utf-8');
+            }
 
-            const beforeAst = parseMarkdown(beforeContent, createUrlResolver(path.dirname(beforePath)));
+            let afterContent = await fs.readFile(afterPath, 'utf-8');
+            
+            // Normalize line endings to avoid CR diffs between Git (LF) and local filesystem (CRLF)
+            beforeContent = beforeContent.replace(/\r\n/g, '\n');
+            afterContent = afterContent.replace(/\r\n/g, '\n');
+
+            const beforeAst = parseMarkdown(beforeContent, createUrlResolver(path.dirname(actualBeforePath)));
             const afterAst = parseMarkdown(afterContent, createUrlResolver(path.dirname(afterPath)));
 
             // Fetch configuration
-            const config = vscode.workspace.getConfiguration('markdownRenderedDiff');
-            const defaultSensitivity = config.get<number>('defaultSensitivity', 0.7);
+            const config = vscode.workspace.getConfiguration('markdownDiffForAi');
+            const defaultSensitivity = config.get<number>('defaultSensitivity', 0.8);
             const threshold = sensitivity !== undefined ? sensitivity : defaultSensitivity;
 
             // Compute diff asynchronously, yielding to avoid blocking Extension Host
             const diffResults = await computeFineGrainedDiffAsync(beforeAst, afterAst, threshold, 50);
 
             // Render to HTML safely
-            const html = await renderDiff(diffResults);
+            const html = await renderDiff(diffResults, beforeLabel, afterLabel);
 
             // Send HTML to Webview
             this._panel.webview.postMessage({
@@ -199,7 +243,7 @@ export class MarkdownDiffPanel {
 
     private _getHtmlForWebview(initialUri?: vscode.Uri, initialTarget: 'before' | 'after' = 'after') {
         const config = vscode.workspace.getConfiguration('markdownDiffForAi');
-        const defaultSensitivity = config.get<number>('defaultSensitivity', 0.7);
+        const defaultSensitivity = config.get<number>('defaultSensitivity', 0.8);
 
         return `<!DOCTYPE html>
 <html lang="ja">
@@ -319,12 +363,14 @@ export class MarkdownDiffPanel {
         
         let beforePath = ${initialUri && initialTarget === 'before' ? JSON.stringify(initialUri.fsPath) : 'null'};
         let afterPath = ${initialUri && initialTarget === 'after' ? JSON.stringify(initialUri.fsPath) : 'null'};
+        let beforeLabel = beforePath ? beforePath.split(/[/\\\\]/).pop() : null;
+        let afterLabel = afterPath ? afterPath.split(/[/\\\\]/).pop() : null;
         const slider = document.getElementById('sensitivitySlider');
         const sliderVal = document.getElementById('sensitivityValue');
 
         function updateUI() {
-            document.getElementById('beforeName').textContent = beforePath ? beforePath.split(/[/\\\\]/).pop() : '${localize('webview.notSelected')}';
-            document.getElementById('afterName').textContent = afterPath ? afterPath.split(/[/\\\\]/).pop() : '${localize('webview.notSelected')}';
+            document.getElementById('beforeName').textContent = beforePath ? (beforeLabel || beforePath.split(/[/\\\\]/).pop()) : '${localize('webview.notSelected')}';
+            document.getElementById('afterName').textContent = afterPath ? (afterLabel || afterPath.split(/[/\\\\]/).pop()) : '${localize('webview.notSelected')}';
             
             if (beforePath && afterPath) {
                 document.getElementById('startDiff').disabled = false;
@@ -335,12 +381,17 @@ export class MarkdownDiffPanel {
             }
         }
 
-        function updatePath(target, newPath) {
+        function updatePath(target, newPath, newLabel) {
             const oldPath = target === 'before' ? beforePath : afterPath;
             const oppositePath = target === 'before' ? afterPath : beforePath;
             
-            if (target === 'before') beforePath = newPath;
-            else afterPath = newPath;
+            if (target === 'before') {
+                beforePath = newPath;
+                beforeLabel = newLabel;
+            } else {
+                afterPath = newPath;
+                afterLabel = newLabel;
+            }
             
             updateUI();
             
@@ -367,6 +418,8 @@ export class MarkdownDiffPanel {
                 diffId: currentDiffId,
                 beforePath: beforePath,
                 afterPath: afterPath,
+                beforeLabel: beforeLabel || (beforePath ? beforePath.split(/[/\\\\]/).pop() : ''),
+                afterLabel: afterLabel || (afterPath ? afterPath.split(/[/\\\\]/).pop() : ''),
                 sensitivity: parseFloat(slider.value)
             });
             document.getElementById('diffOutput').innerHTML = '<p>${localize('webview.computing')}</p>';
@@ -380,6 +433,8 @@ export class MarkdownDiffPanel {
         document.getElementById('clearAll').addEventListener('click', () => {
             beforePath = null;
             afterPath = null;
+            beforeLabel = null;
+            afterLabel = null;
             document.getElementById('diffOutput').innerHTML = '';
             updateUI();
         });
@@ -397,7 +452,7 @@ export class MarkdownDiffPanel {
         window.addEventListener('message', event => {
             const message = event.data;
             if (message.command === 'fileSelected') {
-                updatePath(message.target, message.filePath);
+                updatePath(message.target, message.filePath, message.fileName);
             } else if (message.command === 'htmlReady') {
                 if (message.diffId === undefined || message.diffId === currentDiffId) {
                     document.getElementById('diffOutput').innerHTML = message.html;

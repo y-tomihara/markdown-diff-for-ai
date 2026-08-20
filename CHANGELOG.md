@@ -1,0 +1,18 @@
+# Change Log
+
+All notable changes to the "markdown-diff-for-ai" extension will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - 2026-08-20
+
+### Added
+- **Initial Release:** Markdown Diff for AI v1.0.0 is officially released! 🎉
+- **Fine-Grained Markdown AST Diffing Engine:** Accurately compares two Markdown files by parsing them into AST (Abstract Syntax Tree) and identifies structural modifications (paragraphs, code blocks, lists) rather than just line-by-line diffs.
+- **Webview UI (Rendered Comparison):** Displays differences in a beautifully rendered, side-by-side HTML preview, making it effortless to review AI-generated revisions or large structural shifts.
+- **Git Integration:** 
+  - Compare current file with HEAD or previous changes.
+  - Interactive `QuickPick` menus to select specific commits or local branches to compare against.
+  - Automatically handles line-ending normalization (CRLF/LF) for Git operations.
+- **Settings Customization:** Configurable `defaultSensitivity` (to control how strictly blocks match) and `commitHistoryLimit` (to control how many commits are loaded in the selection UI).
