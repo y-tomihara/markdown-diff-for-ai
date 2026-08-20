@@ -2,6 +2,8 @@
 
 これはコミット履歴のテスト用です。
 
+これはブランチ差分です。
+
 This is an updated test document to verify the manual E2E scenario.
 We added an entire new sentence here to see how it handles block replacement.
 
