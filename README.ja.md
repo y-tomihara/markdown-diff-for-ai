@@ -1,5 +1,6 @@
 # Markdown Diff for AI
 
+*[English](README.md)* | *[日本語](README.ja.md)* | *[中文](README.zh.md)* | *[한국어](README.ko.md)* | *[Español](README.es.md)* | *[Deutsch](README.de.md)* | *[Français](README.fr.md)* | *[Português](README.pt-br.md)*
 Markdown Diff for AI は、2つのMarkdownファイル間の変更履歴を、HTMLとしてレンダリングされた状態で視覚的に比較できるVS Code拡張機能です。文章の構造、段落、コードブロック、画像の差分を直感的に把握できるため、AIによって生成・修正された原稿の確認や、共同編集におけるレビュー作業に最適です。
 
 ## 主な機能 (Features)

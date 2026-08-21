@@ -1,0 +1,21 @@
+{
+  "command.selectAsAfter.title": "변경 후(After)로 선택",
+  "command.selectAsBefore.title": "변경 전(Before)으로 선택",
+  "command.compareWithHead.title": "Git: HEAD와 비교",
+  "command.compareWithPrevious.title": "Git: 이전 변경 사항과 비교",
+  "command.compareWithCommit.title": "Git: 커밋을 선택하여 비교...",
+  "command.compareWithBranch.title": "Git: 브랜치를 선택하여 비교...",
+  "config.defaultSensitivity.desc": "블록 교체 및 세밀한 차이 판단을 위한 기본 민감도 임계값입니다. 새 Diff 뷰를 열 때 초기값으로 사용됩니다.",
+  "config.defaultSensitivity.title": "Markdown Diff for AI",
+  "config.commitHistoryLimit.desc": "커밋 기록 선택 목록에 표시할 최대 커밋 수",
+  "webview.before": "변경 전 (Before)",
+  "webview.after": "변경 후 (After)",
+  "webview.selectFile": "파일 선택...",
+  "webview.notSelected": "선택 안 됨",
+  "webview.compare": "비교하기",
+  "webview.clear": "지우기",
+  "webview.sensitivity": "민감도 (Sensitivity)",
+  "webview.sensitivityTooltip": "낮음 = 수정된 블록으로 쉽게 묶임. 높음 = 엄격함. 삭제 및 추가 블록으로 분리되기 쉬움.",
+  "webview.computing": "차이를 계산 중...",
+  "error.computing": "Diff 계산 오류:"
+}

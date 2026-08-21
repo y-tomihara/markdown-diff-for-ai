@@ -1,0 +1,21 @@
+{
+  "command.selectAsAfter.title": "Seleccionar como Después",
+  "command.selectAsBefore.title": "Seleccionar como Antes",
+  "command.compareWithHead.title": "Git: Comparar con HEAD",
+  "command.compareWithPrevious.title": "Git: Comparar con el cambio anterior",
+  "command.compareWithCommit.title": "Git: Seleccionar commit...",
+  "command.compareWithBranch.title": "Git: Seleccionar rama...",
+  "config.defaultSensitivity.desc": "Umbral de sensibilidad predeterminado.",
+  "config.defaultSensitivity.title": "Markdown Diff for AI",
+  "config.commitHistoryLimit.desc": "Número máximo de commits a mostrar.",
+  "webview.before": "Antes (Before)",
+  "webview.after": "Después (After)",
+  "webview.selectFile": "Seleccionar archivo...",
+  "webview.notSelected": "No seleccionado",
+  "webview.compare": "Comparar",
+  "webview.clear": "Limpiar",
+  "webview.sensitivity": "Sensibilidad",
+  "webview.sensitivityTooltip": "Bajo = Agrupado. Alto = Estricto.",
+  "webview.computing": "Calculando diferencias...",
+  "error.computing": "Error:"
+}

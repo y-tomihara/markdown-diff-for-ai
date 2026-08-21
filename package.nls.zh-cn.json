@@ -1,0 +1,21 @@
+{
+  "command.selectAsAfter.title": "选择作为修改后 (Select as After)",
+  "command.selectAsBefore.title": "选择作为修改前 (Select as Before)",
+  "command.compareWithHead.title": "Git: 与 HEAD 比较",
+  "command.compareWithPrevious.title": "Git: 与上一次修改比较",
+  "command.compareWithCommit.title": "Git: 选择提交记录比较...",
+  "command.compareWithBranch.title": "Git: 选择分支比较...",
+  "config.defaultSensitivity.desc": "决定块替换和细粒度差异的默认灵敏度阈值。作为打开新差异视图时的初始值。",
+  "config.defaultSensitivity.title": "Markdown Diff for AI",
+  "config.commitHistoryLimit.desc": "提交历史选择列表中显示的最大提交数量。",
+  "webview.before": "修改前 (Before)",
+  "webview.after": "修改后 (After)",
+  "webview.selectFile": "选择文件...",
+  "webview.notSelected": "未选择",
+  "webview.compare": "比较差异",
+  "webview.clear": "清除",
+  "webview.sensitivity": "灵敏度 (Sensitivity)",
+  "webview.sensitivityTooltip": "低 = 倾向于组合成修改块。高 = 严格。倾向于分离为删除和添加块。",
+  "webview.computing": "正在计算差异...",
+  "error.computing": "计算差异出错:"
+}

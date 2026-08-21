@@ -5,10 +5,11 @@ All notable changes to the "markdown-diff-for-ai" extension will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.1] - 2026-08-20
+## [1.0.2] - 2026-08-21
 
-### Changed
-- Updated README documentation with detailed feature descriptions and use cases.
+### Added
+- Added full UI localization (package.nls) and translated README documentation for 6 new languages: Chinese (Simplified), Korean, Spanish, German, French, and Portuguese (Brazil). (Total 8 languages supported).
+- Added cross-navigation language links to the top of all README files.
 
 ## [1.0.0] - 2026-08-20
 
