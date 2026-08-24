@@ -56,4 +56,26 @@ describe('Markdown Parser', () => {
 
         expect(imagesFound).toBe(3);
     });
+
+    it('should ignore Byte Order Mark (BOM) when parsing', () => {
+        const contentWithoutBOM = '# Title';
+        const contentWithBOM = '\uFEFF# Title';
+
+        const astWithoutBOM = parseMarkdown(contentWithoutBOM);
+        const astWithBOM = parseMarkdown(contentWithBOM);
+
+        // 両者のASTが完全に一致することを確認
+        expect(astWithoutBOM).toEqual(astWithBOM);
+    });
+
+    it('should ignore CRLF line endings and treat them as LF', () => {
+        const contentWithLF = '# Title\n\nParagraph 1\nParagraph 2';
+        const contentWithCRLF = '# Title\r\n\r\nParagraph 1\r\nParagraph 2';
+
+        const astWithLF = parseMarkdown(contentWithLF);
+        const astWithCRLF = parseMarkdown(contentWithCRLF);
+
+        // 改行コードの違いが無視され、完全に一致することを確認
+        expect(astWithLF).toEqual(astWithCRLF);
+    });
 });

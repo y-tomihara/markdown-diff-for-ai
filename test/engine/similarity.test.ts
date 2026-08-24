@@ -12,12 +12,12 @@ describe('Similarity Evaluator', () => {
     });
 
     it('should calculate partial similarity correctly', () => {
-        const score = calculateSimilarity('hello world', 'hello there world');
-        // before: ["hello", " ", "world"] (length 3)
-        // after:  ["hello", " ", "there", " ", "world"] (length 5)
-        // common: "hello", " ", "world" (count 3)
-        // expected: 2 * 3 / 8 = 0.75
-        expect(score).toBeCloseTo(0.75);
+        const score = calculateSimilarity('hello world', 'hello beautiful world', 'en');
+        // before: ["hello", "world"] (2)
+        // after: ["hello", "beautiful", "world"] (3)
+        // common: "hello", "world" (count 2)
+        // expected: 2 * 2 / 5 = 0.8
+        expect(score).toBeCloseTo(0.8);
     });
 
     it('should determine if similarity is above threshold', () => {

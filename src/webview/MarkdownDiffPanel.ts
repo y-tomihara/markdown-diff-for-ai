@@ -183,8 +183,8 @@ export class MarkdownDiffPanel {
         };
 
         try {
-            let beforeContent = '';
             let actualBeforePath = beforePath;
+            let beforeData: Buffer;
             if (beforePath.startsWith('git:')) {
                 // git:ref:absolutePath
                 const parts = beforePath.split(':');
@@ -193,16 +193,23 @@ export class MarkdownDiffPanel {
                 actualBeforePath = originalPath;
                 const cwd = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(originalPath))?.uri.fsPath || path.dirname(originalPath);
                 const gitService = new GitService();
-                beforeContent = await gitService.getFileContent(originalPath, ref, cwd);
+                beforeData = Buffer.from(await gitService.getFileContent(originalPath, ref, cwd));
             } else {
-                beforeContent = await fs.readFile(beforePath, 'utf-8');
+                beforeData = await fs.readFile(beforePath);
             }
 
-            let afterContent = await fs.readFile(afterPath, 'utf-8');
+            let afterData = await fs.readFile(afterPath);
             
-            // Normalize line endings to avoid CR diffs between Git (LF) and local filesystem (CRLF)
-            beforeContent = beforeContent.replace(/\r\n/g, '\n');
-            afterContent = afterContent.replace(/\r\n/g, '\n');
+            let beforeContent = beforeData.toString('utf8');
+            let afterContent = afterData.toString('utf8');
+
+            // Strip BOM (Byte Order Mark) if present
+            if (beforeContent.charCodeAt(0) === 0xFEFF) {
+                beforeContent = beforeContent.slice(1);
+            }
+            if (afterContent.charCodeAt(0) === 0xFEFF) {
+                afterContent = afterContent.slice(1);
+            }
 
             const beforeAst = parseMarkdown(beforeContent, createUrlResolver(path.dirname(actualBeforePath)));
             const afterAst = parseMarkdown(afterContent, createUrlResolver(path.dirname(afterPath)));

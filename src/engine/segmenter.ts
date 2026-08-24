@@ -9,13 +9,26 @@
  *               which generally works well for mixed CJK and English text.
  * @returns Array of segmented strings
  */
-export function segmentText(text: string, locale: string = 'ja'): string[] {
+export function segmentText(text: string, locale: string = 'ja', filterSpaces: boolean = true): string[] {
     if (!text) {
         return [];
     }
-    
-    const segmenter = new Intl.Segmenter(locale, { granularity: 'word' });
-    const segments = Array.from(segmenter.segment(text));
-    
-    return segments.map(segment => segment.segment);
+    try {
+        const segmenter = new Intl.Segmenter(locale, { granularity: 'word' });
+        const segments = Array.from(segmenter.segment(text));
+        
+        if (filterSpaces) {
+            return segments.filter(s => s.isWordLike).map(segment => segment.segment);
+        } else {
+            return segments.map(segment => segment.segment);
+        }
+    } catch (e) {
+        // Fallback for environments where Intl.Segmenter is not fully supported
+        const fallbackSegments = text.split(/\b/);
+        if (filterSpaces) {
+            return fallbackSegments.filter(s => s.trim().length > 0 && !/^[\s\.,、。!\?]+$/.test(s));
+        } else {
+            return fallbackSegments;
+        }
+    }
 }

@@ -1,7 +1,7 @@
 import * as diff from 'diff';
 import type { Root, Content } from 'mdast';
 import { matchBlocks } from './block_matcher';
-import { isSimilarEnough } from './similarity';
+import { calculateSimilarity, isSimilarEnough } from './similarity';
 import { segmentText } from './segmenter';
 import { visit } from 'unist-util-visit';
 
@@ -85,8 +85,8 @@ export function computeInlineDiff(oldNode: Content, newNode: Content, locale: st
         }));
     }
 
-    const beforeSegments = segmentText(beforeText, locale);
-    const afterSegments = segmentText(afterText, locale);
+    const beforeSegments = segmentText(beforeText, locale, false);
+    const afterSegments = segmentText(afterText, locale, false);
     
     return diff.diffArrays(beforeSegments, afterSegments).map(change => ({
         value: change.value.join(''),
@@ -115,7 +115,8 @@ export async function computeFineGrainedDiffAsync(
             await yieldToEventLoop();
         }
 
-        const current = exactBlocks[i];
+        const current = exactBlocks[i] as any;
+        if (current.matched) continue;
 
         if (current.status === 'unchanged') {
             results.push({ type: 'unchanged', oldNode: current.node, newNode: current.node });
@@ -123,22 +124,38 @@ export async function computeFineGrainedDiffAsync(
         }
 
         if (current.status === 'removed') {
-            if (i + 1 < exactBlocks.length && exactBlocks[i + 1].status === 'added') {
-                const next = exactBlocks[i + 1];
-                const oldText = extractText(current.node);
-                const newText = extractText(next.node);
+            let matchIndex = -1;
+            let bestSimilarity = -1;
 
-                if (isSimilarEnough(oldText, newText, similarityThreshold)) {
-                    results.push({
-                        type: 'modified',
-                        oldNode: current.node,
-                        newNode: next.node,
-                        inlineDiffs: computeInlineDiff(current.node, next.node)
-                    });
-                    i++; 
-                    continue;
+            // Look ahead for the most similar 'added' block before hitting 'unchanged'
+            for (let j = i + 1; j < exactBlocks.length; j++) {
+                const next = exactBlocks[j] as any;
+                if (next.status === 'unchanged') break;
+                if (next.status === 'added' && !next.matched) {
+                    const oldText = extractText(current.node);
+                    const newText = extractText(next.node);
+                    // Use calculateSimilarity directly to find the BEST match
+                    const sim = isSimilarEnough(oldText, newText, 0) ? calculateSimilarity(oldText, newText) : -1;
+                    
+                    if (sim >= similarityThreshold && sim > bestSimilarity) {
+                        bestSimilarity = sim;
+                        matchIndex = j;
+                    }
                 }
             }
+
+            if (matchIndex !== -1) {
+                const next = exactBlocks[matchIndex] as any;
+                next.matched = true;
+                results.push({
+                    type: 'modified',
+                    oldNode: current.node,
+                    newNode: next.node,
+                    inlineDiffs: computeInlineDiff(current.node, next.node)
+                });
+                continue;
+            }
+
             results.push({ type: 'removed', oldNode: current.node });
             continue;
         }
@@ -161,7 +178,8 @@ export function computeFineGrainedDiff(beforeAst: Root, afterAst: Root, similari
 
     // Group adjacent removed and added blocks to check for modifications
     for (let i = 0; i < exactBlocks.length; i++) {
-        const current = exactBlocks[i];
+        const current = exactBlocks[i] as any;
+        if (current.matched) continue;
 
         if (current.status === 'unchanged') {
             results.push({ type: 'unchanged', oldNode: current.node, newNode: current.node });
@@ -169,25 +187,36 @@ export function computeFineGrainedDiff(beforeAst: Root, afterAst: Root, similari
         }
 
         if (current.status === 'removed') {
-            // Check if the next block is 'added' to pair them up
-            if (i + 1 < exactBlocks.length && exactBlocks[i + 1].status === 'added') {
-                const next = exactBlocks[i + 1];
-                const oldText = extractText(current.node);
-                const newText = extractText(next.node);
+            let matchIndex = -1;
+            let bestSimilarity = -1;
 
-                if (isSimilarEnough(oldText, newText, similarityThreshold)) {
-                    // It's a modification
-                    results.push({
-                        type: 'modified',
-                        oldNode: current.node,
-                        newNode: next.node,
-                        inlineDiffs: computeInlineDiff(current.node, next.node)
-                    });
-                    i++; // skip the 'added' block since we consumed it
-                    continue;
+            for (let j = i + 1; j < exactBlocks.length; j++) {
+                const next = exactBlocks[j] as any;
+                if (next.status === 'unchanged') break;
+                if (next.status === 'added' && !next.matched) {
+                    const oldText = extractText(current.node);
+                    const newText = extractText(next.node);
+                    const sim = isSimilarEnough(oldText, newText, 0) ? calculateSimilarity(oldText, newText) : -1;
+                    
+                    if (sim >= similarityThreshold && sim > bestSimilarity) {
+                        bestSimilarity = sim;
+                        matchIndex = j;
+                    }
                 }
             }
-            // Not paired or not similar enough
+
+            if (matchIndex !== -1) {
+                const next = exactBlocks[matchIndex] as any;
+                next.matched = true;
+                results.push({
+                    type: 'modified',
+                    oldNode: current.node,
+                    newNode: next.node,
+                    inlineDiffs: computeInlineDiff(current.node, next.node)
+                });
+                continue;
+            }
+
             results.push({ type: 'removed', oldNode: current.node });
             continue;
         }

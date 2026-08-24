@@ -75,6 +75,45 @@ describe('Fine-grained Diff', () => {
         expect(addedLine?.value).toBe('const c = 3;\n');
     });
 
+    it('should properly pair blocks greedily when multiple blocks are replaced (N to M blocks)', () => {
+        const before = parseMarkdown('# Title Old\n\nOld paragraph that was removed.');
+        const after = parseMarkdown('# Title New\n\nNew paragraph A.\n\nNew paragraph B.');
+        
+        // At default threshold, 'Title Old' should pair with 'Title New'
+        const results = computeFineGrainedDiff(before, after);
+        
+        expect(results.length).toBe(4); // 1 modified (Title), 1 removed (Old para), 2 added (New para A, B)
+        
+        const modified = results.find(r => r.type === 'modified');
+        expect(modified).toBeDefined();
+        // Check if the modified block correctly paired the headings
+        expect((modified?.oldNode as any).type).toBe('heading');
+        expect((modified?.newNode as any).type).toBe('heading');
+    });
+
+    it('should force pairing of dissimilar blocks when threshold is 0.0', () => {
+        const before = parseMarkdown('Apple is a fruit.');
+        const after = parseMarkdown('Microsoft is a tech company.');
+        
+        // With threshold 0.0, even completely different strings will pair if they are adjacent
+        const results = computeFineGrainedDiff(before, after, 0.0);
+        
+        expect(results.length).toBe(1);
+        expect(results[0].type).toBe('modified');
+    });
+
+    it('should leave blocks as removed/added if threshold is strict and similarity is low', () => {
+        const before = parseMarkdown('Apple is a fruit.');
+        const after = parseMarkdown('Apple makes computers.');
+        
+        // With threshold 0.9 (very strict), they should not pair despite having 'Apple' in common
+        const results = computeFineGrainedDiff(before, after, 0.9);
+        
+        expect(results.length).toBe(2);
+        expect(results[0].type).toBe('removed');
+        expect(results[1].type).toBe('added');
+    });
+
     it('should yield to event loop during async processing (REQ-011)', async () => {
         // Generate a large number of blocks
         const beforeText = Array.from({ length: 100 }, (_, i) => `Paragraph ${i}`).join('\n\n');

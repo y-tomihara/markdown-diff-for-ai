@@ -62,11 +62,18 @@ export async function renderDiff(diffResults: BlockDiffResult[], beforeLabel: st
             // Modified block with inline diffs
             // To preserve markdown syntax (like **bold**), we construct a markdown string
             // with embedded <ins> and <del> tags, and parse it back to HAST.
-            const diffMarkdown = result.inlineDiffs.map(diff => {
+            let diffMarkdown = result.inlineDiffs.map(diff => {
                 if (diff.added) return `<ins class="diff-inline-added">${diff.value}</ins>`;
                 if (diff.removed) return `<del class="diff-inline-removed">${diff.value}</del>`;
                 return diff.value;
             }).join('');
+
+            // Preserve heading format if both old and new nodes were headings
+            if (result.oldNode?.type === 'heading' && result.newNode?.type === 'heading') {
+                const depth = Math.min(result.oldNode.depth, result.newNode.depth);
+                const prefix = '#'.repeat(depth) + ' ';
+                diffMarkdown = prefix + diffMarkdown;
+            }
 
             const inlineProcessor = unified()
                 .use(remarkParse)
