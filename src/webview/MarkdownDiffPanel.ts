@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import * as crypto from 'crypto';
 import * as fsSync from 'fs';
 import { parseMarkdown } from '../engine/parser';
 import { computeFineGrainedDiffAsync } from '../engine/diff';
+import { computeNormalizedImageHash } from '../engine/hash';
 import { renderDiff } from './renderer';
 import { localize } from '../extension/i18n';
 import { GitService } from '../git/GitService';
+import { visit } from 'unist-util-visit';
 
 export class MarkdownDiffPanel {
     public static currentPanel: MarkdownDiffPanel | undefined;
@@ -165,17 +166,19 @@ export class MarkdownDiffPanel {
                     absolutePath = path.resolve(baseDir, decodeURIComponent(url));
                 }
                 const uri = vscode.Uri.file(absolutePath);
-                node.url = this._panel.webview.asWebviewUri(uri).toString();
+                let baseWebviewUrl = this._panel.webview.asWebviewUri(uri).toString();
                 
                 // Compute SHA-256 hash of the file content
                 if (fsSync.existsSync(absolutePath)) {
                     const fileBuffer = fsSync.readFileSync(absolutePath);
-                    const hashSum = crypto.createHash('sha256');
-                    hashSum.update(fileBuffer);
-                    node.imageHash = hashSum.digest('hex');
+                    const ext = path.extname(absolutePath);
+                    node.imageHash = computeNormalizedImageHash(fileBuffer, ext);
                 } else {
                     node.imageHash = 'not-found-' + absolutePath;
                 }
+                
+                // Append hash as cache buster to prevent VS Code Webview from aggressively caching swapped images
+                node.url = baseWebviewUrl + '?t=' + node.imageHash;
             } catch (e) {
                 node.url = url;
                 node.imageHash = 'error';
@@ -185,15 +188,16 @@ export class MarkdownDiffPanel {
         try {
             let actualBeforePath = beforePath;
             let beforeData: Buffer;
+            let beforeGitRef: string | undefined = undefined;
             if (beforePath.startsWith('git:')) {
                 // git:ref:absolutePath
                 const parts = beforePath.split(':');
-                const ref = parts[1];
+                beforeGitRef = parts[1];
                 const originalPath = parts.slice(2).join(':');
                 actualBeforePath = originalPath;
                 const cwd = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(originalPath))?.uri.fsPath || path.dirname(originalPath);
                 const gitService = new GitService();
-                beforeData = Buffer.from(await gitService.getFileContent(originalPath, ref, cwd));
+                beforeData = Buffer.from(await gitService.getFileContent(originalPath, beforeGitRef, cwd));
             } else {
                 beforeData = await fs.readFile(beforePath);
             }
@@ -213,6 +217,41 @@ export class MarkdownDiffPanel {
 
             const beforeAst = parseMarkdown(beforeContent, createUrlResolver(path.dirname(actualBeforePath)));
             const afterAst = parseMarkdown(afterContent, createUrlResolver(path.dirname(afterPath)));
+
+            // Resolve Git images if the before file is from Git
+            if (beforeGitRef) {
+                const gitService = new GitService();
+                const cwd = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(actualBeforePath))?.uri.fsPath || path.dirname(actualBeforePath);
+                const baseDir = path.dirname(actualBeforePath);
+                const promises: Promise<void>[] = [];
+                visit(beforeAst, 'image', (node: any) => {
+                    if (!node.originalUrl || /^(https?|data):/i.test(node.originalUrl)) return;
+                    promises.push((async () => {
+                        try {
+                            let absolutePath: string;
+                            if (node.originalUrl.startsWith('file://')) {
+                                absolutePath = vscode.Uri.parse(node.originalUrl).fsPath;
+                            } else {
+                                absolutePath = path.resolve(baseDir, decodeURIComponent(node.originalUrl));
+                            }
+                            let buffer = await gitService.getFileContentBinary(absolutePath, beforeGitRef!, cwd);
+                            const ext = path.extname(absolutePath).toLowerCase();
+                            node.imageHash = computeNormalizedImageHash(buffer, ext);
+                            
+                            let mime = 'application/octet-stream';
+                            if (ext === '.svg') mime = 'image/svg+xml';
+                            else if (ext === '.png') mime = 'image/png';
+                            else if (ext === '.jpg' || ext === '.jpeg') mime = 'image/jpeg';
+                            else if (ext === '.gif') mime = 'image/gif';
+                            else if (ext === '.webp') mime = 'image/webp';
+                            node.url = `data:${mime};base64,${buffer.toString('base64')}`;
+                        } catch (e) {
+                            node.imageHash = 'git-not-found-' + node.originalUrl;
+                        }
+                    })());
+                });
+                await Promise.all(promises);
+            }
 
             // Fetch configuration
             const config = vscode.workspace.getConfiguration('markdownDiffForAi');
@@ -311,10 +350,14 @@ export class MarkdownDiffPanel {
         .diff-image-old {
             border-left: none;
             padding: 10px;
+            text-decoration: none;
+            display: inline-block;
         }
         .diff-image-new {
             border-left: none;
             padding: 10px;
+            text-decoration: none;
+            display: inline-block;
         }
         ins.diff-inline-added {
             background-color: var(--vscode-diffEditor-insertedTextBackground);

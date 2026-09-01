@@ -2,7 +2,9 @@
 
 *[English](README.md)* | *[日本語](README.ja.md)* | *[中文](README.zh.md)* | *[한국어](README.ko.md)* | *[Español](README.es.md)* | *[Deutsch](README.de.md)* | *[Français](README.fr.md)* | *[Português](README.pt-br.md)*
 
-Markdown Diff for AI 是一个 VS Code 扩展，旨在直观地比较两个 Markdown 文件在完全渲染为 HTML 状态下的差异。它可以帮助您快速直观地掌握文档结构、段落、代码块和图像的差异，特别适合于审查由 AI 生成的修改或协同编辑。
+Markdown Diff for AI 是一个 VS Code 扩展，旨在直观地比较两个 Markdown 文件在完全渲染为 HTML 状态下的差异。它可以帮助您快速直观地掌握文档结构、段落、代码块和图像的差异，特别适合于审查由 AI 生成/修改或协同编辑的文档。
+
+![Markdown Diff Screenshot](images/img_0001_markdown_diff_screenshot_en.png)
 
 ## 主要功能 (Features)
 

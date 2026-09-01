@@ -24,7 +24,7 @@ langs = {
             'webview.computing': 'Calculando diferencias...',
             'error.computing': 'Error:'
         },
-        'readme': '# Markdown Diff for AI\n\n*[English](README.md)* | *[日本語](README.ja.md)* | *[中文](README.zh.md)* | *[한국어](README.ko.md)* | *[Español](README.es.md)* | *[Deutsch](README.de.md)* | *[Français](README.fr.md)* | *[Português](README.pt-br.md)*\n\nMarkdown Diff for AI es una extensión de VS Code para comparar archivos Markdown...'
+        'readme': '# Markdown Diff for AI\n\n*[English](README.md)* | *[日本語](README.ja.md)* | *[中文](README.zh.md)* | *[한국어](README.ko.md)* | *[Español](README.es.md)* | *[Deutsch](README.de.md)* | *[Français](README.fr.md)* | *[Português](README.pt-br.md)*\n\nMarkdown Diff for AI es una extensión de VS Code para comparar archivos Markdown...\n\n![Markdown Diff Screenshot](images/img_0001_markdown_diff_screenshot_en.png)'
     },
     'de': {
         'name': 'Deutsch',
@@ -49,7 +49,7 @@ langs = {
             'webview.computing': 'Unterschiede berechnen...',
             'error.computing': 'Fehler:'
         },
-        'readme': '# Markdown Diff for AI\n\n*[English](README.md)* | *[日本語](README.ja.md)* | *[中文](README.zh.md)* | *[한국어](README.ko.md)* | *[Español](README.es.md)* | *[Deutsch](README.de.md)* | *[Français](README.fr.md)* | *[Português](README.pt-br.md)*\n\nMarkdown Diff for AI ist eine VS Code-Erweiterung zum Vergleichen von Markdown-Dateien...'
+        'readme': '# Markdown Diff for AI\n\n*[English](README.md)* | *[日本語](README.ja.md)* | *[中文](README.zh.md)* | *[한국어](README.ko.md)* | *[Español](README.es.md)* | *[Deutsch](README.de.md)* | *[Français](README.fr.md)* | *[Português](README.pt-br.md)*\n\nMarkdown Diff for AI ist eine VS Code-Erweiterung zum Vergleichen von Markdown-Dateien...\n\n![Markdown Diff Screenshot](images/img_0001_markdown_diff_screenshot_en.png)'
     },
     'fr': {
         'name': 'Français',
@@ -74,7 +74,7 @@ langs = {
             'webview.computing': 'Calcul des différences...',
             'error.computing': 'Erreur:'
         },
-        'readme': '# Markdown Diff for AI\n\n*[English](README.md)* | *[日本語](README.ja.md)* | *[中文](README.zh.md)* | *[한국어](README.ko.md)* | *[Español](README.es.md)* | *[Deutsch](README.de.md)* | *[Français](README.fr.md)* | *[Português](README.pt-br.md)*\n\nMarkdown Diff for AI est une extension VS Code pour comparer des fichiers Markdown...'
+        'readme': '# Markdown Diff for AI\n\n*[English](README.md)* | *[日本語](README.ja.md)* | *[中文](README.zh.md)* | *[한국어](README.ko.md)* | *[Español](README.es.md)* | *[Deutsch](README.de.md)* | *[Français](README.fr.md)* | *[Português](README.pt-br.md)*\n\nMarkdown Diff for AI est une extension VS Code pour comparer des fichiers Markdown...\n\n![Markdown Diff Screenshot](images/img_0001_markdown_diff_screenshot_en.png)'
     },
     'pt-br': {
         'name': 'Português (Brasil)',
@@ -99,7 +99,7 @@ langs = {
             'webview.computing': 'Calculando diferenças...',
             'error.computing': 'Erro:'
         },
-        'readme': '# Markdown Diff for AI\n\n*[English](README.md)* | *[日本語](README.ja.md)* | *[中文](README.zh.md)* | *[한국어](README.ko.md)* | *[Español](README.es.md)* | *[Deutsch](README.de.md)* | *[Français](README.fr.md)* | *[Português](README.pt-br.md)*\n\nMarkdown Diff for AI é uma extensão do VS Code para comparar arquivos Markdown...'
+        'readme': '# Markdown Diff for AI\n\n*[English](README.md)* | *[日本語](README.ja.md)* | *[中文](README.zh.md)* | *[한국어](README.ko.md)* | *[Español](README.es.md)* | *[Deutsch](README.de.md)* | *[Français](README.fr.md)* | *[Português](README.pt-br.md)*\n\nMarkdown Diff for AI é uma extensão do VS Code para comparar arquivos Markdown...\n\n![Markdown Diff Screenshot](images/img_0001_markdown_diff_screenshot_en.png)'
     }
 }
 

@@ -49,4 +49,19 @@ export class GitService {
 
         return this.execGitCommand(['show', `"${ref}:${relativePath}"`], cwd);
     }
+
+    /**
+     * Retrieves the binary content of a file at a specific git ref.
+     */
+    public async getFileContentBinary(filePath: string, ref: string, cwd: string): Promise<Buffer> {
+        const repoRoot = await this.execGitCommand(['rev-parse', '--show-toplevel'], cwd);
+        let relativePath = path.relative(repoRoot.trim(), filePath).replace(/\\/g, '/');
+        
+        return new Promise((resolve, reject) => {
+            cp.exec(`git show "${ref}:${relativePath}"`, { cwd, maxBuffer: 1024 * 1024 * 10, encoding: 'buffer' }, (error, stdout) => {
+                if (error) reject(error);
+                else resolve(stdout);
+            });
+        });
+    }
 }

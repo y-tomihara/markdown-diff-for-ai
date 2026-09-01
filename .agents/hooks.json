@@ -1,0 +1,10 @@
+{
+  "enforce-independent-review": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node scripts/enforce-review.js"
+      }
+    ]
+  }
+}

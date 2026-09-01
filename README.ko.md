@@ -2,7 +2,9 @@
 
 *[English](README.md)* | *[日本語](README.ja.md)* | *[中文](README.zh.md)* | *[한국어](README.ko.md)* | *[Español](README.es.md)* | *[Deutsch](README.de.md)* | *[Français](README.fr.md)* | *[Português](README.pt-br.md)*
 
-Markdown Diff for AI는 두 마크다운 파일 간의 변경 사항을 HTML로 완전히 렌더링된 상태에서 시각적으로 비교하도록 설계된 VS Code 확장 프로그램입니다. 문서 구조, 단락, 코드 블록 및 이미지의 차이를 빠르고 직관적으로 파악할 수 있도록 도와주며, 특히 AI가 생성한 수정 사항이나 공동 편집을 검토하는 데 효과적입니다.
+Markdown Diff for AI는 두 개의 마크다운 파일 간의 변경 사항을 HTML로 완전히 렌더링된 상태에서 시각적으로 비교할 수 있는 VS Code 확장 프로그램입니다. 문서 구조, 단락, 코드 블록 및 이미지의 차이를 빠르고 직관적으로 파악할 수 있도록 도와주며, 특히 AI가 생성/수정한 문서나 협업 시 리뷰 작업에 매우 유용합니다.
+
+![Markdown Diff Screenshot](images/img_0001_markdown_diff_screenshot_en.png)
 
 ## 주요 기능 (Features)
 

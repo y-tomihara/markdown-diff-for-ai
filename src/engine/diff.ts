@@ -58,18 +58,27 @@ export function computeInlineDiff(oldNode: Content, newNode: Content, locale: st
     // Synchronize image URLs if their original relative URLs match AND their hashes match.
     // This prevents absolute path differences (due to files being in different folders)
     // from generating inline diffs that break the markdown syntax.
+    let oImages: any[] = [];
+    visit(oldNode, 'image', (node: any) => oImages.push(node));
+    let nImages: any[] = [];
+    visit(newNode, 'image', (node: any) => nImages.push(node));
+
     let hasModifiedImage = false;
-    visit(oldNode, 'image', (oImg: any) => {
-        visit(newNode, 'image', (nImg: any) => {
-            if (oImg.originalUrl && oImg.originalUrl === nImg.originalUrl) {
-                if (oImg.imageHash === nImg.imageHash) {
-                    oImg.url = nImg.url; 
-                } else {
-                    hasModifiedImage = true;
-                }
+    if (oImages.length !== nImages.length) {
+        hasModifiedImage = true;
+    } else {
+        for (let i = 0; i < oImages.length; i++) {
+            if (oImages[i].imageHash === nImages[i].imageHash && oImages[i].alt === nImages[i].alt) {
+                // バイナリが同一でAltテキストも同じ場合、単なるファイル名（参照）の変更とみなす
+                // 差分としてハイライトすると同じ画像が2つ並んでしまうため、内部的にURLを同期させて差分を無視する
+                oImages[i].originalUrl = nImages[i].originalUrl;
+                oImages[i].url = nImages[i].url;
+            } else {
+                hasModifiedImage = true;
+                break;
             }
-        });
-    });
+        }
+    }
 
     if (hasModifiedImage) {
         return undefined; // Skip inline diff, tell renderer to do a block-level replacement

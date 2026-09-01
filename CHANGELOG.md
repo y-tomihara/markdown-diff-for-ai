@@ -5,6 +5,14 @@ All notable changes to the "markdown-diff-for-ai" extension will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-09-01
+
+### Fixed
+- Fixed an issue where images were rendered as plain text when their URL or alt text was modified. Changed to use block-level replacement for modified images to preserve markdown syntax.
+- Appended a hash cache-buster to WebView URIs to force VS Code to render the correct image binary data instead of stale caches when comparing local images or Git history, especially when images were renamed or swapped.
+- Implemented asynchronous fetching of binary image data from Git refs.
+- Normalized CRLF to LF line endings for SVG images before computing hashes to prevent false positive diffs on Windows.
+
 ## [1.0.4] - 2026-09-01
 
 ### Added
