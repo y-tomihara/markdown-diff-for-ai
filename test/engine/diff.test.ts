@@ -75,20 +75,28 @@ describe('Fine-grained Diff', () => {
         expect(addedLine?.value).toBe('const c = 3;\n');
     });
 
-    it('should properly pair blocks greedily when multiple blocks are replaced (N to M blocks)', () => {
-        const before = parseMarkdown('# Title Old\n\nOld paragraph that was removed.');
+    it('should properly pair blocks greedily when multiple blocks are replaced (N to M blocks) and preserve order', () => {
+        // Here, Old Title maps to New Title.
+        // The old paragraph before the title is removed.
+        // The new paragraphs after the title are added.
+        // Result order should be: Removed(Old para), Modified(Title), Added(New para A), Added(New para B)
+        const before = parseMarkdown('Old paragraph that was removed.\n\n# Title Old');
         const after = parseMarkdown('# Title New\n\nNew paragraph A.\n\nNew paragraph B.');
         
-        // At default threshold, 'Title Old' should pair with 'Title New'
         const results = computeFineGrainedDiff(before, after);
         
-        expect(results.length).toBe(4); // 1 modified (Title), 1 removed (Old para), 2 added (New para A, B)
+        expect(results.length).toBe(4); // 1 removed (Old para), 1 modified (Title), 2 added (New para A, B)
         
-        const modified = results.find(r => r.type === 'modified');
-        expect(modified).toBeDefined();
-        // Check if the modified block correctly paired the headings
-        expect((modified?.oldNode as any).type).toBe('heading');
-        expect((modified?.newNode as any).type).toBe('heading');
+        // Assert order
+        expect(results[0].type).toBe('removed');
+        expect((results[0].oldNode as any).type).toBe('paragraph');
+        
+        expect(results[1].type).toBe('modified');
+        expect((results[1].oldNode as any).type).toBe('heading');
+        expect((results[1].newNode as any).type).toBe('heading');
+        
+        expect(results[2].type).toBe('added');
+        expect(results[3].type).toBe('added');
     });
 
     it('should force pairing of dissimilar blocks when threshold is 0.0', () => {

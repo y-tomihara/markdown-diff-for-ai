@@ -98,6 +98,124 @@ export function computeInlineDiff(oldNode: Content, newNode: Content, locale: st
 const yieldToEventLoop = () => new Promise(resolve => setTimeout(resolve, 0));
 
 /**
+ * Helper to process a chunk of removed and added nodes recursively using Divide and Conquer.
+ * This preserves the relative document order for unmatched nodes around the matched anchor pairs.
+ */
+function processDiffChunk(removed: any[], added: any[], threshold: number): BlockDiffResult[] {
+    const results: BlockDiffResult[] = [];
+    const consumedAdded = new Set<number>();
+
+    for (let r = 0; r < removed.length; r++) {
+        let bestSim = -1;
+        let bestA = -1;
+
+        const oldText = extractText(removed[r]);
+        for (let a = 0; a < added.length; a++) {
+            if (consumedAdded.has(a)) continue;
+
+            const newText = extractText(added[a]);
+            const sim = isSimilarEnough(oldText, newText, 0) ? calculateSimilarity(oldText, newText) : -1;
+            
+            if (sim >= threshold && sim > bestSim) {
+                bestSim = sim;
+                bestA = a;
+            }
+        }
+
+        if (bestSim !== -1) {
+            // Flush any unmatched added blocks appearing before the matched one
+            for (let a = 0; a < bestA; a++) {
+                if (!consumedAdded.has(a)) {
+                    results.push({ type: 'added', newNode: added[a] });
+                    consumedAdded.add(a);
+                }
+            }
+
+            results.push({
+                type: 'modified',
+                oldNode: removed[r],
+                newNode: added[bestA],
+                inlineDiffs: computeInlineDiff(removed[r], added[bestA])
+            });
+            consumedAdded.add(bestA);
+        } else {
+            results.push({ type: 'removed', oldNode: removed[r] });
+        }
+    }
+
+    // Flush any remaining unmatched added blocks
+    for (let a = 0; a < added.length; a++) {
+        if (!consumedAdded.has(a)) {
+            results.push({ type: 'added', newNode: added[a] });
+            consumedAdded.add(a);
+        }
+    }
+
+    return results;
+}
+
+/**
+ * Async version of processDiffChunk that yields to the event loop occasionally.
+ */
+async function processDiffChunkAsync(removed: any[], added: any[], threshold: number, yieldCount: { count: number, limit: number }): Promise<BlockDiffResult[]> {
+    const results: BlockDiffResult[] = [];
+    const consumedAdded = new Set<number>();
+
+    for (let r = 0; r < removed.length; r++) {
+        if (yieldCount.count++ > yieldCount.limit) {
+            await yieldToEventLoop();
+            yieldCount.count = 0;
+        }
+
+        let bestSim = -1;
+        let bestA = -1;
+
+        const oldText = extractText(removed[r]);
+        for (let a = 0; a < added.length; a++) {
+            if (consumedAdded.has(a)) continue;
+
+            const newText = extractText(added[a]);
+            const sim = isSimilarEnough(oldText, newText, 0) ? calculateSimilarity(oldText, newText) : -1;
+            
+            if (sim >= threshold && sim > bestSim) {
+                bestSim = sim;
+                bestA = a;
+            }
+        }
+
+        if (bestSim !== -1) {
+            // Flush any unmatched added blocks appearing before the matched one
+            for (let a = 0; a < bestA; a++) {
+                if (!consumedAdded.has(a)) {
+                    results.push({ type: 'added', newNode: added[a] });
+                    consumedAdded.add(a);
+                }
+            }
+
+            results.push({
+                type: 'modified',
+                oldNode: removed[r],
+                newNode: added[bestA],
+                inlineDiffs: computeInlineDiff(removed[r], added[bestA])
+            });
+            consumedAdded.add(bestA);
+        } else {
+            results.push({ type: 'removed', oldNode: removed[r] });
+        }
+    }
+
+    // Flush any remaining unmatched added blocks
+    for (let a = 0; a < added.length; a++) {
+        if (!consumedAdded.has(a)) {
+            results.push({ type: 'added', newNode: added[a] });
+            consumedAdded.add(a);
+        }
+    }
+
+    return results;
+}
+
+/**
  * Computes a fine-grained diff asynchronously to prevent blocking the event loop.
  * Yields control to the event loop every `yieldInterval` blocks.
  */
@@ -109,60 +227,35 @@ export async function computeFineGrainedDiffAsync(
 ): Promise<BlockDiffResult[]> {
     const exactBlocks = matchBlocks(beforeAst, afterAst);
     const results: BlockDiffResult[] = [];
+    const yieldCount = { count: 0, limit: yieldInterval };
 
-    for (let i = 0; i < exactBlocks.length; i++) {
-        if (i > 0 && i % yieldInterval === 0) {
+    let i = 0;
+    while (i < exactBlocks.length) {
+        if (yieldCount.count++ > yieldCount.limit) {
             await yieldToEventLoop();
+            yieldCount.count = 0;
         }
 
         const current = exactBlocks[i] as any;
-        if (current.matched) continue;
-
         if (current.status === 'unchanged') {
             results.push({ type: 'unchanged', oldNode: current.node, newNode: current.node });
+            i++;
             continue;
         }
 
-        if (current.status === 'removed') {
-            let matchIndex = -1;
-            let bestSimilarity = -1;
-
-            // Look ahead for the most similar 'added' block before hitting 'unchanged'
-            for (let j = i + 1; j < exactBlocks.length; j++) {
-                const next = exactBlocks[j] as any;
-                if (next.status === 'unchanged') break;
-                if (next.status === 'added' && !next.matched) {
-                    const oldText = extractText(current.node);
-                    const newText = extractText(next.node);
-                    // Use calculateSimilarity directly to find the BEST match
-                    const sim = isSimilarEnough(oldText, newText, 0) ? calculateSimilarity(oldText, newText) : -1;
-                    
-                    if (sim >= similarityThreshold && sim > bestSimilarity) {
-                        bestSimilarity = sim;
-                        matchIndex = j;
-                    }
-                }
+        const removedChunk: any[] = [];
+        const addedChunk: any[] = [];
+        while (i < exactBlocks.length && exactBlocks[i].status !== 'unchanged') {
+            if (exactBlocks[i].status === 'removed') {
+                removedChunk.push(exactBlocks[i].node);
+            } else if (exactBlocks[i].status === 'added') {
+                addedChunk.push(exactBlocks[i].node);
             }
-
-            if (matchIndex !== -1) {
-                const next = exactBlocks[matchIndex] as any;
-                next.matched = true;
-                results.push({
-                    type: 'modified',
-                    oldNode: current.node,
-                    newNode: next.node,
-                    inlineDiffs: computeInlineDiff(current.node, next.node)
-                });
-                continue;
-            }
-
-            results.push({ type: 'removed', oldNode: current.node });
-            continue;
+            i++;
         }
 
-        if (current.status === 'added') {
-            results.push({ type: 'added', newNode: current.node });
-        }
+        const chunkResults = await processDiffChunkAsync(removedChunk, addedChunk, similarityThreshold, yieldCount);
+        results.push(...chunkResults);
     }
 
     return results;
@@ -176,54 +269,27 @@ export function computeFineGrainedDiff(beforeAst: Root, afterAst: Root, similari
     const exactBlocks = matchBlocks(beforeAst, afterAst);
     const results: BlockDiffResult[] = [];
 
-    // Group adjacent removed and added blocks to check for modifications
-    for (let i = 0; i < exactBlocks.length; i++) {
+    let i = 0;
+    while (i < exactBlocks.length) {
         const current = exactBlocks[i] as any;
-        if (current.matched) continue;
-
         if (current.status === 'unchanged') {
             results.push({ type: 'unchanged', oldNode: current.node, newNode: current.node });
+            i++;
             continue;
         }
 
-        if (current.status === 'removed') {
-            let matchIndex = -1;
-            let bestSimilarity = -1;
-
-            for (let j = i + 1; j < exactBlocks.length; j++) {
-                const next = exactBlocks[j] as any;
-                if (next.status === 'unchanged') break;
-                if (next.status === 'added' && !next.matched) {
-                    const oldText = extractText(current.node);
-                    const newText = extractText(next.node);
-                    const sim = isSimilarEnough(oldText, newText, 0) ? calculateSimilarity(oldText, newText) : -1;
-                    
-                    if (sim >= similarityThreshold && sim > bestSimilarity) {
-                        bestSimilarity = sim;
-                        matchIndex = j;
-                    }
-                }
+        const removedChunk: any[] = [];
+        const addedChunk: any[] = [];
+        while (i < exactBlocks.length && exactBlocks[i].status !== 'unchanged') {
+            if (exactBlocks[i].status === 'removed') {
+                removedChunk.push(exactBlocks[i].node);
+            } else if (exactBlocks[i].status === 'added') {
+                addedChunk.push(exactBlocks[i].node);
             }
-
-            if (matchIndex !== -1) {
-                const next = exactBlocks[matchIndex] as any;
-                next.matched = true;
-                results.push({
-                    type: 'modified',
-                    oldNode: current.node,
-                    newNode: next.node,
-                    inlineDiffs: computeInlineDiff(current.node, next.node)
-                });
-                continue;
-            }
-
-            results.push({ type: 'removed', oldNode: current.node });
-            continue;
+            i++;
         }
 
-        if (current.status === 'added') {
-            results.push({ type: 'added', newNode: current.node });
-        }
+        results.push(...processDiffChunk(removedChunk, addedChunk, similarityThreshold));
     }
 
     return results;

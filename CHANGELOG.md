@@ -5,6 +5,11 @@ All notable changes to the "markdown-diff-for-ai" extension will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-09-01
+
+### Fixed
+- Fixed an issue where the output order of diff blocks (added, removed, modified) was incorrect when a block was heavily modified or split. The diff engine now properly preserves the relative sequential order of the original document.
+
 ## [1.0.2] - 2026-08-22
 
 ### Added
