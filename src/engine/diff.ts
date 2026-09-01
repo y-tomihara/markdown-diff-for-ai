@@ -1,6 +1,6 @@
 import * as diff from 'diff';
 import type { Root, Content } from 'mdast';
-import { matchBlocks } from './block_matcher';
+import { matchBlocks, matchNodes } from './block_matcher';
 import { calculateSimilarity, isSimilarEnough } from './similarity';
 import { segmentText } from './segmenter';
 import { visit } from 'unist-util-visit';
@@ -18,6 +18,7 @@ export interface BlockDiffResult {
     oldNode?: Content;
     newNode?: Content;
     inlineDiffs?: SegmentDiff[];
+    mergedNode?: Content;
 }
 
 /**
@@ -131,11 +132,17 @@ function processDiffChunk(removed: any[], added: any[], threshold: number): Bloc
                 }
             }
 
+            let mergedNode: Content | undefined = undefined;
+            if (removed[r].type === 'table' && added[bestA].type === 'table') {
+                mergedNode = computeTableDiff(removed[r], added[bestA], threshold);
+            }
+
             results.push({
                 type: 'modified',
                 oldNode: removed[r],
                 newNode: added[bestA],
-                inlineDiffs: computeInlineDiff(removed[r], added[bestA])
+                inlineDiffs: computeInlineDiff(removed[r], added[bestA]),
+                mergedNode
             });
             consumedAdded.add(bestA);
         } else {
@@ -152,6 +159,133 @@ function processDiffChunk(removed: any[], added: any[], threshold: number): Bloc
     }
 
     return results;
+}
+
+/**
+ * Deeply compares two table AST nodes and returns a merged table AST node 
+ * containing inline diffs and class properties for styling.
+ */
+function computeTableDiff(oldTable: any, newTable: any, threshold: number): any {
+    const mergedTable = { ...newTable, children: [] };
+    const rowDiffs = matchNodes(oldTable.children || [], newTable.children || []);
+    
+    let i = 0;
+    while (i < rowDiffs.length) {
+        const current = rowDiffs[i] as any;
+        if (current.status === 'unchanged') {
+            mergedTable.children.push(current.node);
+            i++;
+            continue;
+        }
+
+        const removedRows: any[] = [];
+        const addedRows: any[] = [];
+        while (i < rowDiffs.length && rowDiffs[i].status !== 'unchanged') {
+            if (rowDiffs[i].status === 'removed') {
+                removedRows.push(rowDiffs[i].node);
+            } else if (rowDiffs[i].status === 'added') {
+                addedRows.push(rowDiffs[i].node);
+            }
+            i++;
+        }
+
+        const consumedAdded = new Set<number>();
+        for (let r = 0; r < removedRows.length; r++) {
+            let bestSim = -1;
+            let bestA = -1;
+            const oldText = extractText(removedRows[r]);
+            for (let a = 0; a < addedRows.length; a++) {
+                if (consumedAdded.has(a)) continue;
+                const newText = extractText(addedRows[a]);
+                const sim = isSimilarEnough(oldText, newText, 0) ? calculateSimilarity(oldText, newText) : -1;
+                if (sim >= threshold && sim > bestSim) {
+                    bestSim = sim;
+                    bestA = a;
+                }
+            }
+            
+            if (bestSim !== -1) {
+                // flush unmatched added
+                for (let a = 0; a < bestA; a++) {
+                    if (!consumedAdded.has(a)) {
+                        const addedRow = JSON.parse(JSON.stringify(addedRows[a]));
+                        addedRow.data = { ...addedRow.data, hProperties: { ...(addedRow.data?.hProperties || {}), className: ['diff-added'] } };
+                        mergedTable.children.push(addedRow);
+                        consumedAdded.add(a);
+                    }
+                }
+                
+                // merge matched row
+                const mergedRow = computeTableRowDiff(removedRows[r], addedRows[bestA]);
+                mergedTable.children.push(mergedRow);
+                consumedAdded.add(bestA);
+            } else {
+                // unmatched removed
+                const removedRow = JSON.parse(JSON.stringify(removedRows[r]));
+                removedRow.data = { ...removedRow.data, hProperties: { ...(removedRow.data?.hProperties || {}), className: ['diff-removed'] } };
+                mergedTable.children.push(removedRow);
+            }
+        }
+        
+        // flush remaining added
+        for (let a = 0; a < addedRows.length; a++) {
+            if (!consumedAdded.has(a)) {
+                const addedRow = JSON.parse(JSON.stringify(addedRows[a]));
+                addedRow.data = { ...addedRow.data, hProperties: { ...(addedRow.data?.hProperties || {}), className: ['diff-added'] } };
+                mergedTable.children.push(addedRow);
+                consumedAdded.add(a);
+            }
+        }
+    }
+    
+    return mergedTable;
+}
+
+function computeTableRowDiff(oldRow: any, newRow: any): any {
+    const mergedRow = { ...newRow, children: [] };
+    const maxCells = Math.max(oldRow.children?.length || 0, newRow.children?.length || 0);
+    
+    for (let i = 0; i < maxCells; i++) {
+        const oldCell = oldRow.children?.[i];
+        const newCell = newRow.children?.[i];
+        
+        if (oldCell && newCell) {
+            const mergedCell = { ...newCell, children: [] };
+            const inlineDiffs = computeInlineDiff(oldCell, newCell);
+            if (inlineDiffs) {
+                // Instead of re-parsing, we map SegmentDiff[] directly into html and text nodes.
+                // Note: inline markdown inside the segments might not be parsed if we wrap in html,
+                // but extractText preserves the text. The easiest way without unified here is to 
+                // just push html tags. 
+                for (const d of inlineDiffs) {
+                    if (d.added) {
+                        mergedCell.children.push({ type: 'html', value: '<ins class="diff-inline-added">' });
+                        mergedCell.children.push({ type: 'text', value: d.value });
+                        mergedCell.children.push({ type: 'html', value: '</ins>' });
+                    } else if (d.removed) {
+                        mergedCell.children.push({ type: 'html', value: '<del class="diff-inline-removed">' });
+                        mergedCell.children.push({ type: 'text', value: d.value });
+                        mergedCell.children.push({ type: 'html', value: '</del>' });
+                    } else {
+                        mergedCell.children.push({ type: 'text', value: d.value });
+                    }
+                }
+            } else {
+                mergedCell.children = newCell.children;
+            }
+            mergedRow.children.push(mergedCell);
+        } else if (newCell) {
+            const addedCell = JSON.parse(JSON.stringify(newCell));
+            addedCell.data = { ...addedCell.data, hProperties: { ...(addedCell.data?.hProperties || {}), className: ['diff-added'] } };
+            mergedRow.children.push(addedCell);
+        } else if (oldCell) {
+            const removedCell = JSON.parse(JSON.stringify(oldCell));
+            removedCell.data = { ...removedCell.data, hProperties: { ...(removedCell.data?.hProperties || {}), className: ['diff-removed'] } };
+            mergedRow.children.push(removedCell);
+        }
+    }
+    
+    return mergedRow;
 }
 
 /**
@@ -192,11 +326,17 @@ async function processDiffChunkAsync(removed: any[], added: any[], threshold: nu
                 }
             }
 
+            let mergedNode: Content | undefined = undefined;
+            if (removed[r].type === 'table' && added[bestA].type === 'table') {
+                mergedNode = computeTableDiff(removed[r], added[bestA], threshold);
+            }
+
             results.push({
                 type: 'modified',
                 oldNode: removed[r],
                 newNode: added[bestA],
-                inlineDiffs: computeInlineDiff(removed[r], added[bestA])
+                inlineDiffs: computeInlineDiff(removed[r], added[bestA]),
+                mergedNode
             });
             consumedAdded.add(bestA);
         } else {

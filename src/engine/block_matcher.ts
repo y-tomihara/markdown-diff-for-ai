@@ -26,9 +26,9 @@ function normalizeNodeForComparison(node: Content): string {
  * @param after AST of the modified Markdown
  * @returns Array of block diff objects
  */
-export function matchBlocks(before: Root, after: Root): BlockDiff[] {
-    const changes = diff.diffArrays(before.children, after.children, {
-        comparator: (left: Content, right: Content) => {
+export function matchNodes(beforeNodes: any[], afterNodes: any[]): BlockDiff[] {
+    const changes = diff.diffArrays(beforeNodes, afterNodes, {
+        comparator: (left: any, right: any) => {
             return normalizeNodeForComparison(left) === normalizeNodeForComparison(right);
         }
     });
@@ -46,4 +46,8 @@ export function matchBlocks(before: Root, after: Root): BlockDiff[] {
     }
 
     return result;
+}
+
+export function matchBlocks(before: Root, after: Root): BlockDiff[] {
+    return matchNodes(before.children, after.children);
 }
